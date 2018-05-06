@@ -1,0 +1,61 @@
+# https://github.com/jasodeep/ansible-lamp-stack-playbook
+- hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    timezone: "Europe/Berlin"
+    users:
+      - name: "pi"
+        groups:
+          - "scanner"
+          - "saned"
+          - "lp"
+      - name: "saned"
+        groups:
+          - "scanner"
+          - "lp"
+      - name: "vagrant"
+        groups:
+          - "scanner"
+          - "saned"
+          - "lp"
+      - name: "root"
+        groups:
+          - "scanner"
+          - "saned"
+          - "lp"
+
+  pre_tasks:
+  - name: Install dependencies needed to properly execute this playbook
+    apt:  pkg={{ item }}
+          state=installed
+          update_cache=yes
+    with_items:
+      - sshpass
+      - ntp # must be installed for ntp role
+      - sudo
+      - dbus # needed for ntp role, otherwise the timedatectl command won't execute
+      - imagemagick # provides convert utility
+
+  - name: make sure, all packages are updatede to the latest version
+    apt:
+      upgrade: "yes"
+      update_cache: "yes"
+
+
+  - name: Enable SSH server
+    service: name={{ item }} enabled=yes state=started
+    with_items:
+    - ssh
+    register: enable_service_result
+    failed_when: "enable_service_result|failed and 'Could not find the requested service' not in enable_service_result.msg"
+
+# depending on the host group, set some parameters
+#  - set_fact:
+#    when: "'production' in group_names"
+
+  roles:
+    - basic
+    - sane
+    - scanbd

@@ -1,0 +1,45 @@
+---
+
+- name: install required packages to build scanbd
+  become: true
+  apt: name={{item}} state=present update_cache=yes
+  with_items:
+    - build-essential
+    - libconfuse-dev
+    - libusb-dev
+    - libudev-dev
+    - libdbus-1-dev
+    - dbus
+
+- name: Create scanbd source folder
+  file:
+    path: /home/pi/scanbd
+    state: directory
+    owner: pi
+    group: pi
+    mode: 0775
+
+- name: Download & Unarchive scanbd
+  unarchive:
+    src: https://sourceforge.net/projects/scanbd/files/releases/scanbd-1.5.1.tgz/download
+    dest: /home/pi/scanbd
+    remote_src: yes
+#  become_user: "pi"
+
+- name: Set permissions for scanbd source folder (pi)
+  file:
+    path: /home/pi/scanbd
+    owner: pi
+    group: pi
+    mode: u=rwX,g=rwX,o=-rwx
+    recurse: yes
+
+- name: Configure, build and install sane from source
+  shell: "{{ item }}"
+  args:
+    chdir: /home/pi/scanbd/1.5.1
+  with_items:
+    - ./configure
+    - make
+    - sudo make install
+  become_user: "pi"

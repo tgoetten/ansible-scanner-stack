@@ -1,0 +1,58 @@
+---
+
+- name: install required packages to build sane
+  become: true
+  apt: name={{item}} state=present update_cache=yes
+  with_items:
+    - build-essential
+    - libusb-dev
+#    - libsane-dev
+    - libavahi-client-dev
+    - libavahi-glib-dev
+    - git-core
+
+- name: Clone sane repository
+  git:
+    repo: git://git.debian.org/sane/sane-backends.git
+    dest: /home/pi/sane-backends
+    version: "master"
+    clone: yes
+
+- name: Set permissions for sane-backend source folder (pi)
+  file:
+    path: /home/pi/sane-backends
+    owner: pi
+    group: pi
+    mode: u=rwX,g=rwX,o=-rwx
+    recurse: yes
+
+- name: Configure, build and install sane from source
+  shell: "{{ item }}"
+  args:
+    chdir: /home/pi/sane-backends
+  with_items:
+    - ./configure --prefix=/usr --libdir=/usr/lib --sysconfdir=/etc --localstatedir=/var --enable-avahi BACKENDS='avision kodak kodakaio net test'
+    - make
+    - sudo make install
+  become_user: "pi"
+
+- name: stat tools/udev/libsane.rules
+  stat: path=/home/pi/sane-backends/tools/udev/libsane.rules
+  register: libsane_stat
+
+- name: Copy libsane.rules from tools/udev/ to /etc/udev/rules.d
+  copy: remote_src=True src=/home/pi/sane-backends/tools/udev/libsane.rules dest=/etc/udev/rules.d/libsane.rules
+  when: libsane_stat.stat.exists
+
+- name: Ensure group "scanner" exists
+  group:
+    name: scanner
+    state: present
+
+- name: Adding users to groups
+  user: name="{{ item.0.name }}"
+        groups="{{ item.1 }}"
+        append=yes
+  with_subelements:
+     - "{{ users }}"
+     - groups

@@ -1,0 +1,14 @@
+---
+
+  - name: Install NTP
+    include_role:
+      name: geerlingguy.ntp
+    become: yes
+    vars:
+      ntp_enabled: true
+      ntp_manage_config: true
+      ntp_timezone: "{{ timezone }}"
+      ntp_servers:
+        - "ntp1.hetzner.de  iburst"
+        - "ntp2.hetzner.com iburst"
+        - "ntp3.hetzner.net iburst"

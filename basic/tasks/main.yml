@@ -1,0 +1,13 @@
+---
+
+  - name: install locale
+    include_tasks: locale.yml
+
+  # needs dbus to be installed, see https://stackoverflow.com/questions/41294214/ansible-timezone-module-fails-different-reasons-on-different-oses
+  - name: install and configure ntp
+    include_tasks: ntp.yml
+
+  - name: Blacklist usblp kernel module
+    kernel_blacklist:
+      name: usblp
+      state: present
